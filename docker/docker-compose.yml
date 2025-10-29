@@ -1,0 +1,38 @@
+#version: "3.8"
+#
+#services:
+#
+#  velocity-funding-db:
+#    environment:
+#      MYSQL_TCP_PORT: 3312
+#
+#    image: velocity-funding-test-database:latest
+#    restart: always
+#    ports:
+#      - "3312:3312"
+#    cap_add:
+#      - SYS_NICE
+
+#version: "3.8"
+
+services:
+  velocity-funding-db:
+    image: velocity-funding-test-database:latest
+    container_name: velocity-funding-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: funding
+      MYSQL_USER: velocity_user
+      MYSQL_PASSWORD: velocity_pass
+      MYSQL_TCP_PORT: 3312
+    ports:
+      - "3312:3312"
+    cap_add:
+      - SYS_NICE
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "3312", "-uroot", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
