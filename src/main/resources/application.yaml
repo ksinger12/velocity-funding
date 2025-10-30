@@ -12,6 +12,8 @@ spring:
 
   flyway:
     enabled: true
+    user: ${MYSQL_USER:velocity_user}
+    password: ${MYSQL_PASSWORD:velocity_pass}
     locations: 'classpath:db/migration'
     baseline-on-migrate: true
     out-of-order: true

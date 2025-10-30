@@ -7,6 +7,7 @@ ENV MYSQL_PASSWORD=velocity_pass
 ENV MYSQL_TCP_PORT=3312
 
 COPY funding-velocity.sql /docker-entrypoint-initdb.d/
+#COPY setup-flyway-permissions.sql /docker-entrypoint-initdb.d/
 
 EXPOSE 3312
 

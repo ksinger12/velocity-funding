@@ -26,6 +26,7 @@ services:
       MYSQL_USER: velocity_user
       MYSQL_PASSWORD: velocity_pass
       MYSQL_TCP_PORT: 3312
+      TZ: UTC
     ports:
       - "3312:3312"
     cap_add:
