@@ -14,8 +14,6 @@ import com.networknt.schema.ValidationMessage;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,7 +45,7 @@ public class LoadFundingController {
       log.info("Attempting to fund customer: {}", jsonObject.get("customer_id"));
 
       return loadFundingService.loadFunds(jsonObject)
-          .map(ResponseEntity::ok)
+          .map(value -> ResponseEntity.ok(String.valueOf(value)))
           .orElse(ResponseEntity.badRequest().build());
     }
 

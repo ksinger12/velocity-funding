@@ -1,6 +1,7 @@
 package com.funding.velocity.repository;
 
 import com.funding.velocity.entity.CustomerTransaction;
+import java.time.ZonedDateTime;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -12,8 +13,20 @@ public interface CustomerTransactionRepository extends CrudRepository<CustomerTr
 
   @Query("""
           select sum(load_amount) from customer_transaction
-          where time between :day and :endOfDay
+          where time between :startDatetime and :endDatetime
+          and customer_id = :customerId
       """)
-  Double findSumOfLoadedAmountByDay(@Param("day") String day, @Param("endOfDay") String endOfDay);
+  Double findSumOfLoadedAmountBetweenDatesByCustomerId(@Param("startDatetime") ZonedDateTime startDatetime,
+                                                       @Param("endDatetime") ZonedDateTime endDatetime,
+                                                       @Param("customerId") String customerId);
+
+  @Query("""
+          select count(*) from customer_transaction
+          where time between :startDatetime and :endDatetime
+          and customer_id = :customerId
+      """)
+  int findNumberOfTransactionsByCustomerIdAndTime(@Param("startDatetime") ZonedDateTime startDatetime,
+                                                  @Param("endDatetime") ZonedDateTime endDatetime,
+                                                  @Param("customerId") String customerId);
 
 }

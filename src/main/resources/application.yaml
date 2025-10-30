@@ -1,5 +1,12 @@
 funding:
 
+  limits:
+    amounts:
+      daily: 5000
+      weekly: 20000
+    loads:
+      daily: 3
+
   schemas:
     LoadFunds: "schemas/loadFundsSchema.json"
 
