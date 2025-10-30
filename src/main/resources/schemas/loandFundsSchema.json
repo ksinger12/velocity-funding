@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loan Funding",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "loan_amount": {
+      "type": "string"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    }
+  },
+  "required": ["id", "customer_id", "loan_amount", "time"],
+  "additionalProperties": true
+}

@@ -1,7 +1,7 @@
 funding:
 
   schemas:
-    a: b
+    LoadFunds: "schemas/loadFundsSchema.json"
 
 spring:
   datasource:

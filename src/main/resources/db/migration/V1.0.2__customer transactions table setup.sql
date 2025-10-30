@@ -5,6 +5,7 @@ create table customer_transaction
     request_id       varchar(255)                           null,
     customer_id      varchar(255)                           null,
     load_amount      double                                 null,
+    time             datetime                               null,
     created_datetime datetime default current_timestamp     not null,
     primary key (id)
 );
