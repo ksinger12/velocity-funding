@@ -12,6 +12,13 @@ import java.util.List;
 
 public class LoadFundsHttpRunner {
 
+  /**
+   * Instructions on running:
+   * 1. Ensure docker container is running
+   * 2. Ensure the application is running
+   * 3. Ensure the cache is empty and the database tables (inbound/outbound/client_transaction are truncated)
+   * 4. Run this file
+   */
   public static void main(String[] args) throws Exception {
 
     String url = "http://localhost:8080/load-fund-data";
