@@ -4,13 +4,10 @@ import com.funding.velocity.config.FundingLimitConfig;
 import com.funding.velocity.entity.CustomerTransaction;
 import com.funding.velocity.entity.OutboundLog;
 import com.funding.velocity.repository.CustomerTransactionRepository;
-import com.networknt.schema.JsonSchema;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.function.Supplier;
-import org.springframework.cache.Cache;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -19,8 +16,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import org.slf4j.MDC;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
@@ -38,9 +38,9 @@ public class LoadFundingService {
   private final Cache weeklyCache;
 
   public LoadFundingService(CustomerTransactionRepository customerTransactionRepository,
-      LoggingService loggingService,
-      FundingLimitConfig fundingLimitConfig,
-      CacheManager cacheManager) {
+                            LoggingService loggingService,
+                            FundingLimitConfig fundingLimitConfig,
+                            CacheManager cacheManager) {
 
     this.customerTransactionRepository = customerTransactionRepository;
     this.loggingService = loggingService;
@@ -54,18 +54,20 @@ public class LoadFundingService {
 
   public JSONObject loadFunds(JSONObject json) {
 
+    CustomerTransaction transaction;
     String customerId = json.getString("customer_id");
-    CustomerTransaction transaction = null;
+    String datetime = json.getString("time");
     JSONObject response = new JSONObject();
 
     response.put("id", json.get("id"));
     response.put("customer_id", customerId);
     response.put("accepted", false);
 
-    if (isFundRequestValid(customerId)) {
+    if (isFundRequestValid(customerId, datetime)) {
       log.info("Funded transaction for customer {} is valid", customerId);
 
       transaction = CustomerTransaction.builder()
+          .traceId(MDC.get("traceId"))
           .requestId(json.getString("id"))
           .customerId(customerId)
           .loadAmount(parseDollarAmount(json.getString("load_amount")).orElse(null))
@@ -87,16 +89,13 @@ public class LoadFundingService {
     return response;
   }
 
-  private boolean isFundRequestValid(String customerId) {
+  private boolean isFundRequestValid(String customerId, String datetime) {
 
-    ZonedDateTime todayStart = LocalDate.now(ZoneOffset.UTC)
-        .atStartOfDay(ZoneId.of("UTC"));
+    ZonedDateTime zonedDateTime = ZonedDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME);
 
-    ZonedDateTime todayEnd = LocalDate.now(ZoneOffset.UTC)
-        .atTime(LocalTime.MAX)
-        .atZone(ZoneId.of("UTC"));
-
-    ZonedDateTime endOfWeek = LocalDate.now(ZoneOffset.UTC)
+    ZonedDateTime todayStart = zonedDateTime.toLocalDate().atStartOfDay(ZoneId.of("UTC"));
+    ZonedDateTime todayEnd = zonedDateTime.toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.of("UTC"));
+    ZonedDateTime endOfWeek = zonedDateTime.toLocalDate()
         .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
         .atTime(LocalTime.MAX)
         .atZone(ZoneId.of("UTC"));
@@ -134,11 +133,15 @@ public class LoadFundingService {
   private BigDecimal cacheResult(Cache cache, String key, Supplier<BigDecimal> supplier, BigDecimal threshold) {
 
     BigDecimal cached = cache.get(key, BigDecimal.class);
+
     if (cached != null) {
+      log.info("Value is cached. Key: {}, Cached: {}", key, cached);
       return cached;
     }
 
     BigDecimal result = supplier.get();
+
+    log.info("Repository count response for key: {}, result: {}", key, result);
 
     if (result == null) {
       result = BigDecimal.ZERO;
