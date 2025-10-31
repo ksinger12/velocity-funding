@@ -4,7 +4,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <withJansi>false</withJansi>
     <encoder>
-      <pattern>%highlight(%d{yyyy-MM-dd HH:mm:ss} | %logger{5}:%L - %msg%n)</pattern>
+      <pattern>%highlight(%d{yyyy-MM-dd HH:mm:ss} | [%X{traceId}] | %logger{5}:%L - %msg%n)</pattern>
     </encoder>
   </appender>
 

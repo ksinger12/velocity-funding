@@ -1,5 +1,6 @@
 package com.funding.velocity.config;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;

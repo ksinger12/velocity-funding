@@ -9,7 +9,7 @@
     "customer_id": {
       "type": "string"
     },
-    "loan_amount": {
+    "load_amount": {
       "type": "string"
     },
     "time": {
@@ -18,6 +18,6 @@
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
     }
   },
-  "required": ["id", "customer_id", "loan_amount", "time"],
+  "required": ["id", "customer_id", "load_amount", "time"],
   "additionalProperties": true
 }

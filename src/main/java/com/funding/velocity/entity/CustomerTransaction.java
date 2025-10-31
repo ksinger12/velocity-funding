@@ -1,6 +1,6 @@
 package com.funding.velocity.entity;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.annotation.Id;
@@ -17,5 +17,5 @@ public class CustomerTransaction {
   private String requestId;
   private String customerId;
   private Double loadAmount;
-  private ZonedDateTime time;
+  private LocalDateTime time;
 }

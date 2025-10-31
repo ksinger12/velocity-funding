@@ -11,6 +11,9 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -32,21 +35,28 @@ public class LoadFundingController {
     this.schemaConfig = schemaConfig;
   }
 
-  // need to add swagger + add swagger to security
   @PostMapping(value = "/load-fund-data", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
   public ResponseEntity<String> loadFunds(@RequestBody String json) throws JsonProcessingException {
 
     JSONObject jsonObject = new JSONObject(json);
     JsonNode node = new ObjectMapper().readTree(json);
 
-    Set<ValidationMessage> validationMessages = retrieveLoadFundsSchema().validate(node);
+    Set<ValidationMessage> validationMessages = retrieveLoadFundsSchema()
+        .map(v -> v.validate(node))
+        .orElse(
+            Set.of(ValidationMessage.builder()
+                .message("Error retrieving schema")
+                .build())
+        );
 
-    if (!validationMessages.isEmpty()) {
+    if (validationMessages.isEmpty()) {
       log.info("Attempting to fund customer: {}", jsonObject.get("customer_id"));
 
-      return loadFundingService.loadFunds(jsonObject)
-          .map(value -> ResponseEntity.ok(String.valueOf(value)))
-          .orElse(ResponseEntity.badRequest().build());
+      JSONObject response = loadFundingService.loadFunds(jsonObject);
+
+      return response.getBoolean("accepted")
+          ? ResponseEntity.ok(response.toString())
+          : ResponseEntity.badRequest().body(response.toString());
     }
 
     log.warn("Failed to load funds: {}. Validation errors: {}", json, validationMessages);
@@ -54,11 +64,21 @@ public class LoadFundingController {
     return ResponseEntity.badRequest().build();
   }
 
-  private JsonSchema retrieveLoadFundsSchema() {
+  private Optional<JsonSchema> retrieveLoadFundsSchema() {
 
-    String schema = schemaConfig.getSchemas().get("LoadFunds");
+    String schemaPath = schemaConfig.getSchemas().get("LoadFunds");
 
-    return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(schema);
+    try (InputStream schemaStream = getClass().getClassLoader().getResourceAsStream(schemaPath)) {
+
+      JsonNode schemaNode = new ObjectMapper().readTree(schemaStream);
+      return Optional.of(
+          JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(schemaNode));
+
+    } catch (Exception e) {
+      log.error("Failed to load JSON schema from file: " + schemaPath, e);
+    }
+
+    return Optional.empty();
   }
 
 }

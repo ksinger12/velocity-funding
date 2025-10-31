@@ -1,9 +1,10 @@
 create table outbound_log
 (
     id               int auto_increment,
-    trace_id         varchar(255)                           null,
-    was_successful   tinyint(1)                             null,
-    created_datetime datetime default current_timestamp     not null,
+    trace_id         varchar(255)                       null,
+    customer_id      varchar(255)                       null,
+    payload          json                               null,
+    created_datetime datetime default current_timestamp not null,
     primary key (id)
 );
 

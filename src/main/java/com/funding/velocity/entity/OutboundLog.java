@@ -16,5 +16,6 @@ public class OutboundLog {
   private Long id;
   private String traceId;
   private String customerId;
-  private boolean wasSuccessful;
+  private String payload;
+
 }

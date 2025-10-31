@@ -7,8 +7,9 @@ funding:
     loads:
       daily: 3
 
-  schemas:
-    LoadFunds: "schemas/loadFundsSchema.json"
+  json-validation:
+    schemas:
+      LoadFunds: "schemas/loadFundsSchema.json"
 
 spring:
   datasource:

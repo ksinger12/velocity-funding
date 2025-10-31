@@ -5,6 +5,7 @@ import com.funding.velocity.entity.OutboundLog;
 import com.funding.velocity.repository.InboundLogRepository;
 import com.funding.velocity.repository.OutboundLogRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -26,14 +27,14 @@ public class LoggingService {
 
   public void writeInboundLog(InboundLog inboundLog) {
 
-    inboundLog.setTraceId("");
+    inboundLog.setTraceId(MDC.get("traceId"));
 
     inboundLogRepository.save(inboundLog);
   }
 
   public void writeOutboundLog(OutboundLog outboundLog) {
 
-    outboundLog.setTraceId("");
+    outboundLog.setTraceId(MDC.get("traceId"));
 
     outboundLogRepository.save(outboundLog);
   }

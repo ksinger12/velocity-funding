@@ -15,7 +15,8 @@ public class InboundLog {
   @Id
   private Long id;
   private String traceId;
-  private String customerId;
+  private String path;
+  private String method;
   private String payload;
 
 }
