@@ -28,7 +28,6 @@ spring:
     validate-on-migrate: false
 
 
-# Optional logging
 logging:
   config: classpath:logback-dev.xml
   level:
