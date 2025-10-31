@@ -3,7 +3,7 @@
 Project description:
 [Venn - Back-End - Hometask.pdf](Venn%20-%20Back-End%20-%20Hometask.pdf)
 
-To start the database:
+### To start the database:
 
 ```shell
 cd docker/test-database
@@ -15,7 +15,8 @@ cd docker
 docker compose up
 ```
 
-To run Venn's interview test:
+## To run Venn's interview test:
 
 Run the `LoadFundsIntegrationTest.java` file
 
+A run has already been done and can be found here: [generated_output.txt](src%2Ftest%2Fresources%2Fgenerated_output.txt)
