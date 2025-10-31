@@ -1,0 +1,8 @@
+###
+DELETE {{baseUrl}}/clear-cache/daily
+
+###
+DELETE {{baseUrl}}/clear-cache/weekly
+
+###
+DELETE {{baseUrl}}/clear-cache/all

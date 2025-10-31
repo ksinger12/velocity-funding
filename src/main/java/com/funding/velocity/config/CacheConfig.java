@@ -5,6 +5,7 @@ import static java.time.DayOfWeek.SUNDAY;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -31,8 +32,8 @@ public class CacheConfig {
     CaffeineCache dailyCache = new CaffeineCache("dailyCache",
         Caffeine.newBuilder()
             .expireAfterWrite(Duration.between(
-                LocalDateTime.now(),
-                LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
+                LocalDateTime.now(ZoneId.of("UTC")),
+                LocalDateTime.now(ZoneId.of("UTC")).withHour(23).withMinute(59).withSecond(59)
             ))
             .build()
     );
@@ -40,8 +41,8 @@ public class CacheConfig {
     CaffeineCache weeklyCache = new CaffeineCache("weeklyCache",
         Caffeine.newBuilder()
             .expireAfterWrite(Duration.between(
-                LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(ZoneId.of("UTC")),
+                LocalDateTime.now(ZoneId.of("UTC"))
                     .with(SUNDAY)
                     .withHour(23).withMinute(59).withSecond(59)
             ))

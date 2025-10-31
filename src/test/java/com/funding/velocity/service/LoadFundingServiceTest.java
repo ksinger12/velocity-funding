@@ -13,6 +13,7 @@ import com.funding.velocity.config.FundingLimitConfig;
 import com.funding.velocity.entity.CustomerTransaction;
 import com.funding.velocity.entity.OutboundLog;
 import com.funding.velocity.repository.CustomerTransactionRepository;
+import com.funding.velocity.repository.InboundLogRepository;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -37,6 +38,9 @@ class LoadFundingServiceTest extends BaseTest {
   private FundingLimitConfig fundingLimitConfig;
 
   @Mock
+  private InboundLogRepository inboundLogRepository;
+
+  @Mock
   private CacheManager cacheManager;
 
   @Mock
@@ -59,6 +63,7 @@ class LoadFundingServiceTest extends BaseTest {
         customerTransactionRepository,
         loggingService,
         fundingLimitConfig,
+        inboundLogRepository,
         cacheManager
     );
   }

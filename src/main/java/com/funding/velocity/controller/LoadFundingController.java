@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,7 +50,13 @@ public class LoadFundingController {
         );
 
     if (validationMessages.isEmpty()) {
-      log.info("Attempting to fund customer: {}", jsonObject.get("customer_id"));
+      String customerId = jsonObject.getString("customer_id");
+
+      log.info("JSON is valid. Attempting to fund customer: {}", customerId);
+
+      if (loadFundingService.isDuplicateRequest(jsonObject.getString("id"), customerId)) {
+        return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
+      }
 
       JSONObject response = loadFundingService.loadFunds(jsonObject);
 

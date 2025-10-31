@@ -7,6 +7,7 @@ import static com.funding.velocity.constant.JsonFields.LOAD_AMOUNT;
 import static com.funding.velocity.constant.JsonFields.TIME;
 import static com.funding.velocity.constant.MdcValues.TRACE_ID;
 
+import com.funding.velocity.repository.InboundLogRepository;
 import com.funding.velocity.util.LoadFundingState;
 import com.funding.velocity.config.FundingLimitConfig;
 import com.funding.velocity.entity.CustomerTransaction;
@@ -39,6 +40,7 @@ public class LoadFundingService {
 
   private final CustomerTransactionRepository customerTransactionRepository;
   private final LoggingService loggingService;
+  private final InboundLogRepository inboundLogRepository;
 
   private final Integer dailyAmountLimit;
   private final Integer weeklyAmountLimit;
@@ -50,10 +52,12 @@ public class LoadFundingService {
   public LoadFundingService(CustomerTransactionRepository customerTransactionRepository,
                             LoggingService loggingService,
                             FundingLimitConfig fundingLimitConfig,
+                            InboundLogRepository inboundLogRepository,
                             CacheManager cacheManager) {
 
     this.customerTransactionRepository = customerTransactionRepository;
     this.loggingService = loggingService;
+    this.inboundLogRepository = inboundLogRepository;
 
     Map<String, Integer> amountsMap = fundingLimitConfig.getAmounts();
     Map<String, Integer> loadsMap = fundingLimitConfig.getLoads();
@@ -117,6 +121,11 @@ public class LoadFundingService {
     loggingService.writeOutboundLog(outbound);
 
     return response;
+  }
+
+  public boolean isDuplicateRequest(String requestId, String customerId) {
+
+    return inboundLogRepository.findByPayloadIdAndPayloadCustomerId(requestId, customerId).isPresent();
   }
 
   private LoadFundingState getFundState(String customerId, String datetime) {
