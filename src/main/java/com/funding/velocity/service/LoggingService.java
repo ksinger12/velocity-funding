@@ -1,5 +1,7 @@
 package com.funding.velocity.service;
 
+import static com.funding.velocity.constant.MdcValues.TRACE_ID;
+
 import com.funding.velocity.entity.InboundLog;
 import com.funding.velocity.entity.OutboundLog;
 import com.funding.velocity.repository.InboundLogRepository;
@@ -24,14 +26,14 @@ public class LoggingService {
 
   public void writeInboundLog(InboundLog inboundLog) {
 
-    inboundLog.setTraceId(MDC.get("traceId"));
+    inboundLog.setTraceId(MDC.get(TRACE_ID));
 
     inboundLogRepository.save(inboundLog);
   }
 
   public void writeOutboundLog(OutboundLog outboundLog) {
 
-    outboundLog.setTraceId(MDC.get("traceId"));
+    outboundLog.setTraceId(MDC.get(TRACE_ID));
 
     outboundLogRepository.save(outboundLog);
   }

@@ -18,4 +18,5 @@ public class CustomerTransaction {
   private String customerId;
   private Double loadAmount;
   private LocalDateTime time;
+
 }

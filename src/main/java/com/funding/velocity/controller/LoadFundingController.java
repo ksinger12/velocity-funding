@@ -70,8 +70,7 @@ public class LoadFundingController {
     try (InputStream schemaStream = getClass().getClassLoader().getResourceAsStream(schemaPath)) {
 
       JsonNode schemaNode = new ObjectMapper().readTree(schemaStream);
-      return Optional.of(
-          JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(schemaNode));
+      return Optional.of(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(schemaNode));
 
     } catch (Exception e) {
       log.error("Failed to load JSON schema from file: {}", schemaPath, e);

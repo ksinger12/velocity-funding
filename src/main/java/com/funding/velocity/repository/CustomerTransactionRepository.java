@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CustomerTransactionRepository extends CrudRepository<CustomerTransaction, Long> {
 
-
   @Query("""
           select sum(load_amount) from customer_transaction
           where time between :startDatetime and :endDatetime

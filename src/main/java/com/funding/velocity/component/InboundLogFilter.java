@@ -1,5 +1,7 @@
 package com.funding.velocity.component;
 
+import static com.funding.velocity.constant.MdcValues.TRACE_ID;
+
 import com.funding.velocity.entity.InboundLog;
 import com.funding.velocity.repository.InboundLogRepository;
 import jakarta.servlet.Filter;
@@ -29,7 +31,7 @@ public class InboundLogFilter implements Filter {
       throws IOException, ServletException {
 
     String traceId = UUID.randomUUID().toString();
-    MDC.put("traceId", traceId);
+    MDC.put(TRACE_ID, traceId);
 
     ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper((HttpServletRequest) request);
     chain.doFilter(wrappedRequest, response);

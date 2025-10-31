@@ -16,20 +16,21 @@ public class CacheConfig {
 
   @Bean
   public Caffeine<Object, Object> caffeineConfig() {
+
     return Caffeine.newBuilder();
   }
 
   @Bean
   public CacheManager cacheManager() {
 
-    var cacheManager = new SimpleCacheManager();
+    SimpleCacheManager cacheManager = new SimpleCacheManager();
 
-    var dailyCache = new CaffeineCache("dailyCache",
+    CaffeineCache dailyCache = new CaffeineCache("dailyCache",
         Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofDays(1))
             .build());
 
-    var weeklyCache = new CaffeineCache("weeklyCache",
+    CaffeineCache weeklyCache = new CaffeineCache("weeklyCache",
         Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofDays(7))
             .build());
