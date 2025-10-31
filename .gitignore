@@ -1,2 +1,6 @@
 .idea/
 target/
+
+*.log
+
+**/http-client.private.env.json
