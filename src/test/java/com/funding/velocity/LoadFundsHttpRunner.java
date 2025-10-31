@@ -1,0 +1,80 @@
+package com.funding.velocity;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class LoadFundsHttpRunner {
+
+  public static void main(String[] args) throws Exception {
+    // Config: endpoint
+    String url = "http://localhost:8080/load-fund-data"; // your running Spring Boot server
+
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    // Load ven1.txt and ven2.txt from classpath
+    List<String> requests;
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(
+            LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Input.txt")))) {
+      requests = reader.lines().collect(Collectors.toList());
+    }
+
+    List<String> expectedResponses;
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(
+            LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Output .txt")))) {
+      expectedResponses = reader.lines().collect(Collectors.toList());
+    }
+
+    if (requests.size() != expectedResponses.size()) {
+      throw new IllegalStateException("Request and expected response line counts do not match!");
+    }
+
+    HttpClient client = HttpClient.newHttpClient();
+    int passCount = 0;
+    int failCount = 0;
+
+    System.out.println("Starting Load Funds HTTP Test...");
+
+    for (int i = 0; i < requests.size(); i++) {
+      String reqJson = requests.get(i).trim();
+      String expectedJson = expectedResponses.get(i).trim();
+
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString(reqJson))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      String responseBody = response.body().trim();
+
+      // Parse JSON and compare as JsonNode (ignores field order, whitespace)
+      JsonNode expectedNode = objectMapper.readTree(expectedJson);
+      JsonNode actualNode = objectMapper.readTree(responseBody);
+
+      if (expectedNode.equals(actualNode)) {
+        System.out.println("Line " + (i + 1) + ": PASS");
+        passCount++;
+      } else {
+        System.out.println("Line " + (i + 1) + ": FAIL");
+        System.out.println("Request : " + reqJson);
+        System.out.println("Expected: " + expectedJson);
+        System.out.println("Got     : " + responseBody);
+        failCount++;
+      }
+    }
+
+    System.out.println("Load Funds HTTP Test complete.");
+    System.out.println("Passed: " + passCount + ", Failed: " + failCount);
+  }
+
+}
