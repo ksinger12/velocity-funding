@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:tc:mysql:8.0.36:////funding?TC_REUSABLE=true
+    username: root
+    password: test
+
+  flyway:
+    enabled: true
+    user: 'velocity_user'
+    password: 'velocity_pass'
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    out-of-order: true
+    validate-on-migrate: false

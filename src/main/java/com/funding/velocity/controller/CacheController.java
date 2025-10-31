@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/cache")
+@RequestMapping("/clear-cache")
 public class CacheController {
 
   private final CacheManager cacheManager;
