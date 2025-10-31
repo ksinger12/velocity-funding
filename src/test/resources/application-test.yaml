@@ -1,3 +1,8 @@
+funding:
+  json-validation:
+    schemas:
+      LoadFunds: "schemas/loadFundsSchema.json"
+
 spring:
   datasource:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
