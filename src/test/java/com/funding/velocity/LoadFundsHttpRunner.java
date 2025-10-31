@@ -1,37 +1,33 @@
 package com.funding.velocity;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class LoadFundsHttpRunner {
 
   public static void main(String[] args) throws Exception {
-    // Config: endpoint
-    String url = "http://localhost:8080/load-fund-data"; // your running Spring Boot server
 
+    String url = "http://localhost:8080/load-fund-data";
+
+    List<String> requests;
+    List<String> expectedResponses;
     ObjectMapper objectMapper = new ObjectMapper();
 
-    // Load ven1.txt and ven2.txt from classpath
-    List<String> requests;
     try (BufferedReader reader = new BufferedReader(
-        new InputStreamReader(
-            LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Input.txt")))) {
-      requests = reader.lines().collect(Collectors.toList());
+        new InputStreamReader(LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Input.txt")))) {
+      requests = reader.lines().toList();
     }
 
-    List<String> expectedResponses;
     try (BufferedReader reader = new BufferedReader(
-        new InputStreamReader(
-            LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Output .txt")))) {
-      expectedResponses = reader.lines().collect(Collectors.toList());
+        new InputStreamReader(LoadFundsHttpRunner.class.getResourceAsStream("/Venn - Back-End - Output .txt")))) {
+      expectedResponses = reader.lines().toList();
     }
 
     if (requests.size() != expectedResponses.size()) {
@@ -57,7 +53,7 @@ public class LoadFundsHttpRunner {
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       String responseBody = response.body().trim();
 
-      // Parse JSON and compare as JsonNode (ignores field order, whitespace)
+      // Parse JSON and compare as JsonNode
       JsonNode expectedNode = objectMapper.readTree(expectedJson);
       JsonNode actualNode = objectMapper.readTree(responseBody);
 
