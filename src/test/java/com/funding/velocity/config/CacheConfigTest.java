@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.funding.velocity.BaseTest;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
@@ -48,7 +50,7 @@ class CacheConfigTest extends BaseTest {
   }
 
   @Test
-  void initialized_cacheManager_dailyCacheExpiresAfterOneDay() {
+  void initialized_cacheManager_dailyCacheExpiresAtEndOfDay() {
 
     SimpleCacheManager cacheManager = (SimpleCacheManager) cacheConfig.cacheManager();
     cacheManager.afterPropertiesSet();
@@ -56,14 +58,20 @@ class CacheConfigTest extends BaseTest {
 
     assertNotNull(dailyCache);
     var nativeCache = dailyCache.getNativeCache();
-    var expirationPolicy = nativeCache.policy().expireAfterWrite();
+    var policy = nativeCache.policy().expireAfterWrite();
+    assertTrue(policy.isPresent());
 
-    assertTrue(expirationPolicy.isPresent());
-    assertEquals(Duration.ofDays(1), expirationPolicy.get().getExpiresAfter());
+    Duration expectedDuration = Duration.between(
+        LocalDateTime.now(ZoneId.of("UTC")),
+        LocalDateTime.now(ZoneId.of("UTC")).withHour(23).withMinute(59).withSecond(59)
+    );
+
+    Duration actualDuration = policy.get().getExpiresAfter();
+    assertTrue(Math.abs(actualDuration.minus(expectedDuration).toSeconds()) <= 1);
   }
 
   @Test
-  void initialized_cacheManager_weeklyCacheExpiresAfterSevenDays() {
+  void initialized_cacheManager_weeklyCacheExpiresAtEndOfWeek() {
 
     SimpleCacheManager cacheManager = (SimpleCacheManager) cacheConfig.cacheManager();
     cacheManager.afterPropertiesSet();
@@ -72,8 +80,15 @@ class CacheConfigTest extends BaseTest {
     assertNotNull(weeklyCache);
     var nativeCache = weeklyCache.getNativeCache();
     var policy = nativeCache.policy().expireAfterWrite();
-
     assertTrue(policy.isPresent());
-    assertEquals(Duration.ofDays(7), policy.get().getExpiresAfter());
+
+    LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+    LocalDateTime endOfWeek = now.with(java.time.DayOfWeek.SUNDAY)
+        .withHour(23).withMinute(59).withSecond(59);
+
+    Duration expectedDuration = Duration.between(now, endOfWeek);
+
+    Duration actualDuration = policy.get().getExpiresAfter();
+    assertTrue(Math.abs(actualDuration.minus(expectedDuration).toSeconds()) <= 1);
   }
 }
