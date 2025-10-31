@@ -135,13 +135,13 @@ public class LoadFundingService {
     BigDecimal cached = cache.get(key, BigDecimal.class);
 
     if (cached != null) {
-      log.info("Value is cached. Key: {}, Cached: {}", key, cached);
+      log.debug("Value is cached. Key: {}, Cached: {}", key, cached);
       return cached;
     }
 
     BigDecimal result = supplier.get();
 
-    log.info("Repository count response for key: {}, result: {}", key, result);
+    log.debug("Repository count response for key: {}, result: {}", key, result);
 
     if (result == null) {
       result = BigDecimal.ZERO;
