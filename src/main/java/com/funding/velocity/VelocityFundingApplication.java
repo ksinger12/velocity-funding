@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class VelocityFundingApplication {
 
 	public static void main(String[] args) {
+
 		SpringApplication.run(VelocityFundingApplication.class, args);
 	}
 

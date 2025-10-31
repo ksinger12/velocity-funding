@@ -12,7 +12,6 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -75,7 +74,7 @@ public class LoadFundingController {
           JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(schemaNode));
 
     } catch (Exception e) {
-      log.error("Failed to load JSON schema from file: " + schemaPath, e);
+      log.error("Failed to load JSON schema from file: {}", schemaPath, e);
     }
 
     return Optional.empty();

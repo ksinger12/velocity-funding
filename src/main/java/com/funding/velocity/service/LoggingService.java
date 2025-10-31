@@ -12,11 +12,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class LoggingService {
 
-  // TODO set the traceId here
-
   private final InboundLogRepository inboundLogRepository;
   private final OutboundLogRepository outboundLogRepository;
-
 
   public LoggingService(InboundLogRepository inboundLogRepository,
                         OutboundLogRepository outboundLogRepository) {
