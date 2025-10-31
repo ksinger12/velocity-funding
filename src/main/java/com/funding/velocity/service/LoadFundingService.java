@@ -7,6 +7,7 @@ import static com.funding.velocity.constant.JsonFields.LOAD_AMOUNT;
 import static com.funding.velocity.constant.JsonFields.TIME;
 import static com.funding.velocity.constant.MdcValues.TRACE_ID;
 
+import com.funding.velocity.util.LoadFundingState;
 import com.funding.velocity.config.FundingLimitConfig;
 import com.funding.velocity.entity.CustomerTransaction;
 import com.funding.velocity.entity.OutboundLog;
@@ -19,7 +20,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -67,33 +68,45 @@ public class LoadFundingService {
 
   public JSONObject loadFunds(JSONObject json) {
 
-    CustomerTransaction transaction;
     JSONObject response = new JSONObject();
 
     String customerId = json.getString(CUSTOMER_ID);
     String datetime = json.getString(TIME);
-    Optional<Double> loadAmount = parseDollarAmount(json.getString(LOAD_AMOUNT));
+    Optional<Double> loadAmountOptional = parseDollarAmount(json.getString(LOAD_AMOUNT));
 
     response.put(ID, json.get(ID));
     response.put(CUSTOMER_ID, customerId);
     response.put(ACCEPTED, false);
 
-    if (loadAmount.map(amount -> amount <= dailyAmountLimit).orElse(false)
-        && isFundRequestValid(customerId, datetime, loadAmount.get())) {
+    if (loadAmountOptional.isPresent()) {
+      double loadAmount = loadAmountOptional.get();
 
-      log.info("Funded transaction for customer {} is valid", customerId);
+      log.debug("Retrieved requested loadAmount from body {}", loadAmount);
 
-      transaction = CustomerTransaction.builder()
-          .traceId(MDC.get(TRACE_ID))
-          .requestId(json.getString(ID))
-          .customerId(customerId)
-          .loadAmount(loadAmount.get())
-          .time(LocalDateTime.parse(json.getString(TIME), DateTimeFormatter.ISO_DATE_TIME))
-          .build();
+      LoadFundingState loadFundingState = getFundState(customerId, datetime);
 
-      customerTransactionRepository.save(transaction);
+      // should customer be funded
+      if (loadAmount <= dailyAmountLimit
+          && loadFundingState.transactionCount() < dailyTransactionLimit
+          && loadFundingState.dailySum() + loadAmount <= dailyAmountLimit
+          && loadFundingState.weeklySum() + loadAmount <= weeklyAmountLimit) {
 
-      response.put(ACCEPTED, true);
+        log.info("Funding this customer: {} with the requested amount: {}", customerId, loadAmount);
+
+        CustomerTransaction transaction = CustomerTransaction.builder()
+            .traceId(MDC.get(TRACE_ID))
+            .requestId(json.getString(ID))
+            .customerId(customerId)
+            .loadAmount(loadAmount)
+            .time(LocalDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME))
+            .build();
+
+        customerTransactionRepository.save(transaction);
+
+        updateCache(customerId, datetime, loadAmount);
+
+        response.put(ACCEPTED, true);
+      }
     }
 
     OutboundLog outbound = OutboundLog.builder()
@@ -106,80 +119,79 @@ public class LoadFundingService {
     return response;
   }
 
-  private boolean isFundRequestValid(String customerId, String datetime, Double loadAmount) {
+  private LoadFundingState getFundState(String customerId, String datetime) {
 
     ZonedDateTime zonedDateTime = ZonedDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME);
     LocalDate localDate = zonedDateTime.toLocalDate();
 
-    ZonedDateTime dayStart = zonedDateTime.toLocalDate().atStartOfDay(ZoneId.of(TIMEZONE));
-    ZonedDateTime dayEnd = zonedDateTime.toLocalDate()
+    WeekFields weekFields = WeekFields.of(DayOfWeek.MONDAY, 4);
+    String localWeek = localDate.get(weekFields.weekBasedYear()) + "-" + localDate.get(weekFields.weekOfWeekBasedYear());
+
+    String transactionCountKey = "transactionCount:" + customerId + localDate;
+    String dailySumKey = "dailySum:" + customerId + localDate;
+    String weeklySumKey = "weeklySum:" + customerId + localWeek;
+
+    ZonedDateTime dayStart = localDate.atStartOfDay(ZoneId.of(TIMEZONE));
+    ZonedDateTime dayEnd = localDate.atTime(LocalTime.MAX).atZone(ZoneId.of(TIMEZONE));
+    ZonedDateTime weekStart = localDate.with(weekFields.dayOfWeek(), 1) // Monday
+        .atStartOfDay(ZoneId.of(TIMEZONE));
+    ZonedDateTime weekEnd = localDate.with(weekFields.dayOfWeek(), 7) // Sunday
         .atTime(LocalTime.MAX)
         .atZone(ZoneId.of(TIMEZONE));
-    ZonedDateTime endOfWeek = zonedDateTime.toLocalDate()
-        .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-        .atTime(LocalTime.MAX)
-        .atZone(ZoneId.of(TIMEZONE));
 
-    BigDecimal transactionCount = cacheResult(
-        dailyCache,
-        "transactionCount:" + customerId + localDate, // transaction key construction
-        () -> BigDecimal.valueOf(
-            customerTransactionRepository.findNumberOfTransactionsByCustomerIdAndTime(dayStart, dayEnd, customerId)
-        ),
-        BigDecimal.valueOf(dailyTransactionLimit)
-    );
+    BigDecimal transactionCount = getCachedValue(dailyCache, transactionCountKey,
+        () -> BigDecimal.valueOf(customerTransactionRepository
+            .findNumberOfTransactionsByCustomerIdAndTime(dayStart, dayEnd, customerId)));
 
-    BigDecimal dailySum = cacheResult(
-        dailyCache,
-        "dailySum:" + customerId + localDate, // daily key construction
-        () -> Optional.ofNullable(
-                customerTransactionRepository.findSumOfLoadedAmountBetweenDatesByCustomerId(dayStart, dayEnd, customerId))
+    BigDecimal dailySum = getCachedValue(dailyCache, dailySumKey,
+        () -> Optional.ofNullable(customerTransactionRepository
+                .findSumOfLoadedAmountBetweenDatesByCustomerId(dayStart, dayEnd, customerId))
             .map(BigDecimal::valueOf)
-            .orElse(BigDecimal.ZERO),
-        BigDecimal.valueOf(dailyAmountLimit)
-    );
+            .orElse(BigDecimal.ZERO));
 
-    BigDecimal weeklySum = cacheResult(
-        weeklyCache,
-        "weeklySum:" + customerId + localDate, // weekly key construction
-        () -> Optional.ofNullable(
-                customerTransactionRepository.findSumOfLoadedAmountBetweenDatesByCustomerId(dayStart, endOfWeek, customerId))
+    BigDecimal weeklySum = getCachedValue(weeklyCache, weeklySumKey,
+        () -> Optional.ofNullable(customerTransactionRepository
+                .findSumOfLoadedAmountBetweenDatesByCustomerId(weekStart, weekEnd, customerId))
             .map(BigDecimal::valueOf)
-            .orElse(BigDecimal.ZERO),
-        BigDecimal.valueOf(weeklyAmountLimit)
-    );
+            .orElse(BigDecimal.ZERO));
 
-    BigDecimal dailySumWithAttempt = dailySum.add(BigDecimal.valueOf(loadAmount));
-    BigDecimal weeklySumWithAttempt = weeklySum.add(BigDecimal.valueOf(loadAmount));
-
-    return transactionCount.intValue() <= dailyTransactionLimit
-        && dailySumWithAttempt.compareTo(BigDecimal.valueOf(dailyAmountLimit)) <= 0
-        && weeklySumWithAttempt.compareTo(BigDecimal.valueOf(weeklyAmountLimit)) <= 0;
+    return new LoadFundingState(transactionCount.intValue(), dailySum.doubleValue(), weeklySum.doubleValue());
   }
 
-  private BigDecimal cacheResult(Cache cache, String key, Supplier<BigDecimal> supplier, BigDecimal threshold) {
+  private void updateCache(String customerId, String datetime, double loadAmount) {
+
+    ZonedDateTime zonedDateTime = ZonedDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME);
+    LocalDate localDate = zonedDateTime.toLocalDate();
+
+    WeekFields weekFields = WeekFields.of(DayOfWeek.MONDAY, 4);
+    String localWeek = localDate.get(weekFields.weekBasedYear()) + "-" + localDate.get(weekFields.weekOfWeekBasedYear());
+
+    String transactionCountKey = "transactionCount:" + customerId + localDate;
+    String dailySumKey = "dailySum:" + customerId + localDate;
+    String weeklySumKey = "weeklySum:" + customerId + localWeek;
+
+    incrementCache(dailyCache, transactionCountKey, 1);
+    incrementCache(dailyCache, dailySumKey, loadAmount);
+    incrementCache(weeklyCache, weeklySumKey, loadAmount);
+  }
+
+  private BigDecimal getCachedValue(Cache cache, String key, Supplier<BigDecimal> supplier) {
 
     BigDecimal cached = cache.get(key, BigDecimal.class);
+    if (cached != null) return cached;
 
-    if (cached != null) {
-      log.debug("Value is cached. Key: {}, Cached: {}", key, cached);
-      return cached;
-    }
+    BigDecimal value = Optional.ofNullable(supplier.get()).orElse(BigDecimal.ZERO);
+    cache.put(key, value);
 
-    BigDecimal result = supplier.get();
+    return value;
+  }
 
-    log.debug("Repository response for key: {}, result: {}", key, result);
+  private void incrementCache(Cache cache, String key, double increment) {
 
-    if (result == null) {
-      result = BigDecimal.ZERO;
-    }
+    BigDecimal current = cache.get(key, BigDecimal.class);
+    if (current == null) current = BigDecimal.ZERO;
 
-    // cache the result only if the threshold is met
-    if (result.compareTo(threshold) >= 0) {
-      cache.put(key, result);
-    }
-
-    return result;
+    cache.put(key, current.add(BigDecimal.valueOf(increment)));
   }
 
   private Optional<Double> parseDollarAmount(String dollarAmount) {
@@ -192,4 +204,5 @@ public class LoadFundingService {
       return Optional.empty();
     }
   }
+
 }

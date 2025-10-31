@@ -1,7 +1,10 @@
 package com.funding.velocity.config;
 
+import static java.time.DayOfWeek.SUNDAY;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -27,13 +30,23 @@ public class CacheConfig {
 
     CaffeineCache dailyCache = new CaffeineCache("dailyCache",
         Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofDays(1))
-            .build());
+            .expireAfterWrite(Duration.between(
+                LocalDateTime.now(),
+                LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
+            ))
+            .build()
+    );
 
     CaffeineCache weeklyCache = new CaffeineCache("weeklyCache",
         Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofDays(7))
-            .build());
+            .expireAfterWrite(Duration.between(
+                LocalDateTime.now(),
+                LocalDateTime.now()
+                    .with(SUNDAY)
+                    .withHour(23).withMinute(59).withSecond(59)
+            ))
+            .build()
+    );
 
     cacheManager.setCaches(List.of(dailyCache, weeklyCache));
 

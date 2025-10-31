@@ -53,7 +53,7 @@ public class LoadFundsIntegrationTest {
   }
 
   @Test
-  void testLoadFundDataEndpoint() throws Exception {
+  void vennInputFile_loadFundData_verifyVennOutputFileMatching() throws Exception {
 
     int passCount = 0;
     int failCount = 0;
