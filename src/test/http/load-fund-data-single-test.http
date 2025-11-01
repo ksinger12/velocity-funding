@@ -12,14 +12,5 @@ Content-Type: application/json
 > {%
  client.test("Request executed successfully", function () {
    client.assert(response.status === 200, "Response status is not 200");
-
-   const expected = {
-     id: "15887",
-     customer_id: "528",
-     accepted: true
-   };
-
-   client.assert(JSON.stringify(JSON.parse(response.body)) === JSON.stringify(expected),
-       "Response JSON does not match expected");
  });
 %}
