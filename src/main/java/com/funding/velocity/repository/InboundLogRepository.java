@@ -15,7 +15,7 @@ public interface InboundLogRepository extends CrudRepository<InboundLog, Long> {
         where JSON_VALID(payload) = 1
          and json_unquote(json_extract(payload, '$.id')) = :requestId
          and json_unquote(json_extract(payload, '$.customer_id')) = :customerId
-        limit 1;
+        limit 1
     """)
   Optional<InboundLog> findByPayloadIdAndPayloadCustomerId(@Param("requestId") String requestId,
                                                            @Param("customerId") String customerId);
