@@ -1,5 +1,6 @@
 package com.funding.velocity.controller;
 
+import static com.funding.velocity.constant.JsonFields.ACCEPTED;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,7 +31,6 @@ public class LoadFundingController {
   public final SchemaConfig schemaConfig;
 
   public LoadFundingController(LoadFundingService loadFundingService, SchemaConfig schemaConfig) {
-
     this.loadFundingService = loadFundingService;
     this.schemaConfig = schemaConfig;
   }
@@ -60,12 +60,12 @@ public class LoadFundingController {
 
       JSONObject response = loadFundingService.loadFunds(jsonObject);
 
-      return response.getBoolean("accepted")
+      return response.getBoolean(ACCEPTED)
           ? ResponseEntity.ok(response.toString())
           : ResponseEntity.badRequest().body(response.toString());
     }
 
-    log.warn("Failed to load funds: {}. Validation errors: {}", json, validationMessages);
+    log.warn("Failed to load funds. Validation errors: {}", validationMessages);
 
     return ResponseEntity.badRequest().build();
   }

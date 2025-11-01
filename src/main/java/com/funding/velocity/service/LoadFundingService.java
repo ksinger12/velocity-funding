@@ -6,13 +6,15 @@ import static com.funding.velocity.constant.JsonFields.ID;
 import static com.funding.velocity.constant.JsonFields.LOAD_AMOUNT;
 import static com.funding.velocity.constant.JsonFields.TIME;
 import static com.funding.velocity.constant.MdcValues.TRACE_ID;
+import static com.funding.velocity.util.CacheUtil.getCachedValue;
+import static com.funding.velocity.util.CacheUtil.incrementCache;
 
-import com.funding.velocity.repository.InboundLogRepository;
-import com.funding.velocity.util.LoadFundingState;
 import com.funding.velocity.config.FundingLimitConfig;
 import com.funding.velocity.entity.CustomerTransaction;
 import com.funding.velocity.entity.OutboundLog;
 import com.funding.velocity.repository.CustomerTransactionRepository;
+import com.funding.velocity.repository.InboundLogRepository;
+import com.funding.velocity.util.LoadFundingState;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -24,7 +26,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.slf4j.MDC;
@@ -76,7 +77,8 @@ public class LoadFundingService {
 
     String customerId = json.getString(CUSTOMER_ID);
     String datetime = json.getString(TIME);
-    Optional<Double> loadAmountOptional = parseDollarAmount(json.getString(LOAD_AMOUNT));
+    String rawLoadAmount = json.getString(LOAD_AMOUNT);
+    Optional<Double> loadAmountOptional = parseDollarAmount(rawLoadAmount);
 
     response.put(ID, json.get(ID));
     response.put(CUSTOMER_ID, customerId);
@@ -85,7 +87,7 @@ public class LoadFundingService {
     if (loadAmountOptional.isPresent()) {
       double loadAmount = loadAmountOptional.get();
 
-      log.debug("Retrieved requested loadAmount from body {}", loadAmount);
+      log.info("Retrieved requested loadAmount from body {} for customer: {}", loadAmount, customerId);
 
       LoadFundingState loadFundingState = getFundState(customerId, datetime);
 
@@ -111,6 +113,8 @@ public class LoadFundingService {
 
         response.put(ACCEPTED, true);
       }
+    } else {
+      log.warn("Valid format for load amount for customer: {}, is not present. Received: {}", customerId, rawLoadAmount);
     }
 
     OutboundLog outbound = OutboundLog.builder()
@@ -140,6 +144,8 @@ public class LoadFundingService {
     String dailySumKey = "dailySum:" + customerId + localDate;
     String weeklySumKey = "weeklySum:" + customerId + localWeek;
 
+    log.debug("Cache keys. TransactionCount: {}. DailySum: {}. WeeklySum: {}", transactionCountKey, dailySumKey, weeklySumKey);
+
     ZonedDateTime dayStart = localDate.atStartOfDay(ZoneId.of(TIMEZONE));
     ZonedDateTime dayEnd = localDate.atTime(LocalTime.MAX).atZone(ZoneId.of(TIMEZONE));
     ZonedDateTime weekStart = localDate.with(weekFields.dayOfWeek(), 1) // Monday
@@ -164,10 +170,14 @@ public class LoadFundingService {
             .map(BigDecimal::valueOf)
             .orElse(BigDecimal.ZERO));
 
+    log.debug("Cached counts. TransactionCount: {}. DailySum: {}. WeeklySum: {}", transactionCount, dailySum, weeklySum);
+
     return new LoadFundingState(transactionCount.intValue(), dailySum.doubleValue(), weeklySum.doubleValue());
   }
 
   private void updateCache(String customerId, String datetime, double loadAmount) {
+
+    log.debug("Updating cache for customer: {}, datetime: {}, loadAmount: {}", customerId, datetime, loadAmount);
 
     ZonedDateTime zonedDateTime = ZonedDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME);
     LocalDate localDate = zonedDateTime.toLocalDate();
@@ -182,25 +192,6 @@ public class LoadFundingService {
     incrementCache(dailyCache, transactionCountKey, 1);
     incrementCache(dailyCache, dailySumKey, loadAmount);
     incrementCache(weeklyCache, weeklySumKey, loadAmount);
-  }
-
-  private BigDecimal getCachedValue(Cache cache, String key, Supplier<BigDecimal> supplier) {
-
-    BigDecimal cached = cache.get(key, BigDecimal.class);
-    if (cached != null) return cached;
-
-    BigDecimal value = Optional.ofNullable(supplier.get()).orElse(BigDecimal.ZERO);
-    cache.put(key, value);
-
-    return value;
-  }
-
-  private void incrementCache(Cache cache, String key, double increment) {
-
-    BigDecimal current = cache.get(key, BigDecimal.class);
-    if (current == null) current = BigDecimal.ZERO;
-
-    cache.put(key, current.add(BigDecimal.valueOf(increment)));
   }
 
   private Optional<Double> parseDollarAmount(String dollarAmount) {
